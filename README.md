@@ -1,4 +1,3 @@
-# ORBIX
 
 <p align="center">
   <img src="{{ url_for('static', filename='images/logo.png') }}" width="120">
