@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>ORBIX</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <style>
+    :root {
+      --page: #0a0c0d;
+      --panel: #111416;
+      --raised: #191d20;
+      --hover: #22272a;
+      --line: #2d3438;
+      --text: #f3f5f6;
+      --muted: #8d979d;
+      --faint: #626c72;
+      --accent: #f5f5f5;
+      --danger: #d9d9d9;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; background: black; color: var(--text); }
+    body { min-width: 320px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0; }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .app-header {
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      border-bottom: none;
+      background: black;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-size: 14px; font-weight: 680; }
+    .brand-mark { position: relative; width: 20px; height: 20px; border: 1px solid #3a4246; border-radius: 6px; background: var(--raised); }
+    .brand-mark::before, .brand-mark::after { content: ""; position: absolute; inset: 0; margin: auto; border-radius: 99px; background: var(--accent); }
+    .brand-mark::before { width: 10px; height: 2px; }
+    .brand-mark::after { width: 2px; height: 10px; }
+    .model-status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+    .model-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(255, 255, 255, .09); }
+    .header-actions { display: flex; align-items: center; gap: 16px; }
+    .new-chat-button { margin-right: auto; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #303639; border-radius: 8px; background: #101213; color: #e5e8e9; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); cursor: pointer; font-size: 11px; font-weight: 620; transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease; }
+    .new-chat-button:hover { transform: translateY(-1px); border-color: #f2f2f2; background: #f2f2f2; color: #111; }
+    .new-chat-button:active { transform: translateY(0); }
+    .new-chat-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .workspace {
+      width: min(1420px, 100%);
+      height: calc(100svh - 62px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: 34px;
+      padding: 26px 28px 24px;
+    }
+
+    .chat-panel { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+    .chat-panel:not(.has-messages) { display: flex; flex-direction: column; justify-content: center; }
+    .chat-panel:not(.has-messages) .conversation { min-height: auto; flex: none; overflow: visible; }
+    .chat-panel:not(.has-messages) .empty-state { min-height: auto; padding: 0 0 26px; }
+    .chat-panel:not(.has-messages) .empty-inner { transform: none; }
+    .chat-panel:not(.has-messages) .composer-area { margin: 0 auto; padding-top: 0; }
+    .conversation { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #343b3f transparent; }
+    .empty-state { min-height: 100%; display: grid; place-items: center; padding: 40px 20px; text-align: center; }
+    .empty-state[hidden] { display: none; }
+    .empty-inner { width: min(780px, 100%); margin: 0 auto; transform: translateY(-4vh); }
+    .intro-heading { width: 100%; display: flex; align-items: center; gap: 14px; }
+    .empty-icon { position: static; width: 70px; height: 70px; display: block; flex: none; margin: 0; border: none; background: none; }
+    .empty-icon .logo { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .empty-state h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 590; line-height: 1.15; text-align: left; }
+    .empty-state p { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+
+    .messages { width: min(760px, 100%); min-height: 100%; margin: 0 auto; padding: 30px 6px 24px; display: flex; flex-direction: column; justify-content: flex-end; gap: 26px; }
+    .messages[hidden] { display: none; }
+    .message { max-width: 86%; color: #dfe3e5; font-size: 14px; line-height: 1.65; }
+    .message-role { display: block; margin-bottom: 7px; color: var(--faint); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .message-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message.user { align-self: flex-end; padding: 11px 14px; border-radius: 8px; background: #edf0f1; color: #171a1c; }
+    .message.user .message-role { display: none; }
+    .message.assistant { align-self: flex-start; }
+    .message.pending .message-text { color: var(--muted); }
+    .message.error .message-text { color: var(--danger); }
+    .message-files { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; margin-bottom: 8px; }
+    .message-file { max-width: 190px; padding: 4px 7px; overflow: hidden; border-radius: 5px; background: #d7dcde; color: #3f484d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+
+    .composer-area { width: min(780px, 100%); margin: 0 auto; padding-top: 12px; }
+    .attachment-tray { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 0 16px 42px rgba(0, 0, 0, .24); }
+    .attachment-tray[hidden] { display: none; }
+    .tray-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--muted); font-size: 10px; font-weight: 650; }
+    .composer-files { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 152px; overflow-y: auto; scrollbar-width: thin; }
+    .composer-file { min-width: 0; height: 50px; display: flex; align-items: center; gap: 9px; padding: 7px; border: 1px solid #282e31; border-radius: 7px; background: #0d1011; }
+    .file-type { width: 34px; height: 34px; display: grid; place-items: center; flex: none; border-radius: 6px; background: #252a2d; color: var(--accent); font-size: 8px; font-weight: 750; }
+    .file-meta { min-width: 0; flex: 1; }
+    .file-meta strong, .file-meta small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-meta strong { font-size: 10px; font-weight: 600; }
+    .file-meta small { margin-top: 3px; color: var(--faint); font-size: 9px; }
+
+    .icon-button { display: grid; place-items: center; flex: none; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+    .icon-button svg, .dropzone svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-button svg { width: 18px; height: 18px; }
+    .remove-button { width: 28px; height: 28px; border-radius: 50%; }
+    .remove-button:hover { background: var(--hover); color: var(--text); }
+
+    .composer { min-height: 58px; display: flex; align-items: flex-end; gap: 4px; padding: 7px; border: none; border-radius: 26px; background: #111; box-shadow: 0 22px 70px rgba(0, 0, 0, .35); transition: border-color .16s ease, box-shadow .16s ease; }
+    .composer:focus-within { border-color: #5b666c; }
+    .composer.listening { border-color: var(--accent); box-shadow: 0 22px 70px rgba(0, 0, 0, .35), 0 0 0 3px rgba(255, 255, 255, .07); }
+    .composer-action, .send-button { width: 42px; height: 42px; border-radius: 50%; }
+    .composer-action { color: #d6dadd; }
+    .composer-action:hover { background: var(--hover); color: var(--text); }
+    .composer-action:disabled { opacity: .38; cursor: not-allowed; }
+    .provider-picker { position: relative; align-self: center; flex: none; }
+    .provider-trigger { height: 32px; display: flex; align-items: center; gap: 5px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #d6dadd; cursor: pointer; font-size: 11px; font-weight: 650; }
+    .provider-trigger:hover, .provider-picker.open .provider-trigger { background: var(--hover); color: white; }
+    .provider-trigger svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .16s ease; }
+    .provider-picker.open .provider-trigger svg { transform: rotate(180deg); }
+    .provider-menu { position: absolute; right: 0; bottom: calc(100% + 12px); z-index: 20; width: 154px; padding: 5px; border: 1px solid #303639; border-radius: 8px; background: #111314; box-shadow: 0 18px 48px rgba(0, 0, 0, .45); }
+    .provider-menu[hidden] { display: none; }
+    .provider-option { width: 100%; height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: #b8bec1; cursor: pointer; font-size: 11px; font-weight: 600; text-align: left; }
+    .provider-option:hover { background: var(--hover); color: white; }
+    .provider-option[aria-selected="true"] { color: white; }
+    .provider-option svg { width: 14px; height: 14px; display: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .provider-option[aria-selected="true"] svg { display: block; }
+    .mic-button.listening { background: var(--accent); color: #111; }
+    .text-shell { position: relative; min-width: 0; min-height: 42px; display: flex; align-items: center; flex: 1; }
+    .message-input { width: 100%; min-width: 0; height: 42px; min-height: 42px; max-height: 120px; padding: 9px 8px; border: 0; outline: 0; resize: none; overflow-y: auto; background: transparent; color: var(--text); font-size: 13px; line-height: 24px; scrollbar-width: thin; }
+    .message-input:focus-visible { outline: 0; }
+    .message-input::placeholder { color: #747e84; }
+    .composer.listening .message-input { padding-right: 126px; }
+    .voice-wave { position: absolute; top: 50%; right: 7px; width: 112px; height: 32px; display: none; align-items: center; pointer-events: none; transform: translateY(-50%); background: linear-gradient(90deg, rgba(25, 29, 32, 0), var(--raised) 28%); }
+    .composer.listening .voice-wave { display: flex; }
+    .voice-wave canvas { width: 112px; height: 32px; }
+    .send-button { background: #363d41; color: #737d82; cursor: not-allowed; transition: transform .15s ease, color .15s ease, background .15s ease; }
+    .send-button.ready { background: var(--text); color: #111416; cursor: pointer; }
+    .send-button.ready:hover { transform: scale(1.04); background: #d9dddf; color: #111; }
+    .send-button:disabled { opacity: 1; }
+    .send-button.loading svg { display: none; }
+    .send-button.loading::after { content: ""; width: 15px; height: 15px; border: 2px solid rgba(255, 255, 255, .24); border-top-color: currentColor; border-radius: 50%; animation: spin .7s linear infinite; }
+
+    .context-panel { min-height: 0; overflow-y: auto; padding: 18px 20px 22px; border-left: 1px solid var(--line); scrollbar-width: thin; }
+    .context-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .context-header h2 { margin: 0; font-size: 16px; font-weight: 650; }
+    .context-header p { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+    .clear-button { width: 32px; height: 32px; border-radius: 50%; }
+    .clear-button:hover { background: var(--hover); color: var(--text); }
+    .context-section { padding: 19px 0; border-bottom: 1px solid #22272a; }
+    .context-section:last-child { border-bottom: 0; }
+    .field-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: #dce0e2; font-size: 11px; font-weight: 650; }
+    .field-count { color: var(--faint); font-size: 9px; font-weight: 500; }
+    .dropzone { min-height: 82px; display: grid; place-items: center; padding: 14px; border: 1px dashed #3b4449; border-radius: 8px; background: #0d1011; color: var(--muted); cursor: pointer; text-align: center; transition: border-color .15s ease, background .15s ease; }
+    .dropzone:hover, .dropzone.dragging { border-color: var(--accent); background: rgba(255, 255, 255, .035); }
+    .dropzone svg { width: 19px; height: 19px; margin-bottom: 7px; color: var(--accent); }
+    .dropzone strong { display: block; color: #d7dcde; font-size: 10px; font-weight: 600; }
+    .dropzone small { display: block; margin-top: 4px; color: var(--faint); font-size: 9px; }
+    .context-items { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .context-item { min-width: 0; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 6px 7px 6px 9px; border: 1px solid #282e31; border-radius: 7px; background: var(--panel); }
+    .context-kind { color: var(--accent); font-size: 8px; font-weight: 750; }
+    .context-item p { min-width: 0; flex: 1; margin: 0; overflow: hidden; color: #b6bdc1; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .instruction { width: 100%; min-height: 108px; padding: 11px; border: 1px solid #30373b; border-radius: 8px; outline: 0; resize: vertical; background: #0d1011; color: var(--text); font-size: 11px; line-height: 1.55; }
+    .instruction::placeholder, .url-input::placeholder { color: #626c72; }
+    .instruction:focus, .url-row:focus-within { border-color: #59646a; }
+    .url-row { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid #30373b; border-radius: 8px; background: #0d1011; }
+    .url-input { min-width: 0; flex: 1; padding: 7px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 10px; }
+    .add-url { width: 32px; height: 32px; border-radius: 6px; background: var(--text); color: #121517; }
+    .add-url:hover { background: #d9dddf; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; } }
+
+    @media (max-width: 980px) {
+      .workspace { height: auto; grid-template-columns: 1fr; gap: 32px; padding: 22px 20px 40px; }
+      .chat-panel { min-height: calc(100svh - 106px); }
+      .context-panel { width: min(720px, 100%); max-height: none; margin: 0 auto; padding: 22px 0 0; border-top: 1px solid var(--line); border-left: 0; }
+    }
+
+    @media (max-width: 620px) {
+      .app-header { height: 56px; padding: 0 16px; }
+      .model-status span { display: none; }
+      .header-actions { gap: 10px; }
+      .new-chat-button { width: 34px; padding: 0; justify-content: center; }
+      .new-chat-button span { display: none; }
+      .workspace { padding: 14px 12px 30px; }
+      .chat-panel { min-height: calc(100svh - 84px); }
+      .message { max-width: 92%; }
+      .composer { min-height: 58px; padding: 6px; gap: 2px; }
+      .composer-action, .send-button { width: 42px; height: 42px; }
+      .provider-trigger { height: 30px; padding: 0 6px; }
+      .composer-files { grid-template-columns: 1fr; }
+      .message-input { padding-left: 4px; font-size: 13px; }
+      .composer.listening .message-input { padding-right: 88px; }
+      .voice-wave, .voice-wave canvas { width: 82px; }
+      .context-panel { padding-inline: 4px; }
+      .intro-heading { gap: 10px; }
+      .empty-icon { width: 48px; height: 48px; }
+      .empty-state h1 { font-size: 22px; }
+    }
+    .brand-text {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--text);
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    
+    <div class="header-actions">
+      <button class="new-chat-button" id="newChatButton" type="button" title="New chat" aria-label="New chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.4 2.6a2.1 2.1 0 0 1 3 3l-9 9-4 1 1-4z"/>
+        </svg>
+        <span>New chat</span>
+      </button>
+      
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="chat-panel" aria-label="AI chat">
+      <div class="conversation" id="conversation">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-inner">
+            <div class="intro-heading">
+              <div class="empty-icon">
+                <img
+                  src="{{ url_for('static', filename='images/logo.png') }}"
+                  alt="Logo"
+                  class="logo"
+                >
+              </div>
+              <h1>What can I help with?</h1>
+            </div>
+          </div>
+        </div>
+        <div class="messages" id="messages" aria-live="polite" hidden></div>
+      </div>
+
+      <div class="composer-area">
+        <div class="attachment-tray" id="attachmentTray" aria-live="polite" hidden>
+          <div class="tray-header"><span>Attached files</span><span id="composerFileCount">0/10</span></div>
+          <div class="composer-files" id="composerFileList"></div>
+        </div>
+
+        <div class="composer" id="composer">
+          <button class="icon-button composer-action" id="attachButton" type="button" aria-label="Add files" title="Add files">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <div class="text-shell">
+            <textarea class="message-input" id="messageInput" rows="1" placeholder="Ask anything..." aria-label="Message AI"></textarea>
+            <div class="voice-wave" aria-hidden="true"><canvas id="waveCanvas" width="112" height="32"></canvas></div>
+          </div>
+          <div class="provider-picker" id="providerPicker">
+            <button class="provider-trigger" id="providerTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Select AI provider">
+              <span id="providerLabel">GPT</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
+            <div class="provider-menu" id="providerMenu" role="listbox" aria-label="AI provider" hidden>
+              <button class="provider-option" type="button" role="option" data-provider="gpt" aria-selected="true">
+                <span>GPT</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              </button>
+              <button class="provider-option" type="button" role="option" data-provider="gemini" aria-selected="false">
+                <span>Gemini</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="icon-button composer-action mic-button" id="micButton" type="button" aria-label="Start voice input" title="Voice input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>
+          </button>
+          <button class="icon-button send-button" id="sendButton" type="button" aria-label="Send message" title="Send" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7M12 19V5"/></svg>
+          </button>
+        </div>
+        <input id="composerFileInput" type="file" multiple accept=".pdf,.doc,.docx,.rtf,.odt,.ppt,.pptx,.txt,.md,.json,.html,.xml,.csv,.tsv,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.gif" hidden>
+      </div>
+    </section>
+
+    <aside class="context-panel" aria-label="Prompt context">
+      <div class="context-header">
+        <div><h2>Prompt Box</h2><p>Context for this conversation</p></div>
+        <button class="icon-button clear-button" id="clearButton" type="button" aria-label="Clear context" title="Clear context">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg>
+        </button>
+      </div>
+
+      <section class="context-section">
+        <label class="field-label">Files <span class="field-count" id="fileCount">0/8</span></label>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add prompt files">
+          <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg><strong>Drop files or browse</strong><small>PDF, DOCX, TXT, CSV</small></div>
+        </div>
+        <input id="fileInput" type="file" multiple accept=".pdf,.docx,.txt,.csv" hidden>
+        <div class="context-items" id="fileList"></div>
+      </section>
+
+      <section class="context-section">
+        <label class="field-label"  for="instruction">System instruction <span class="field-count" id="instructionCount">0/500</span></label>
+        <textarea class="instruction" name="instruction_system" id="instruction" maxlength="500" rows="5" placeholder="How should the AI respond?"></textarea>
+      </section>
+
+      <section class="context-section">
+        <label class="field-label" for="website">Websites <span class="field-count" id="websiteCount">0</span></label>
+        <div class="url-row">
+          <input class="url-input" id="website" type="url" placeholder="https://example.com" aria-label="Website URL">
+          <button class="icon-button add-url" id="addWebsite" type="button" aria-label="Add website" title="Add website"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <div class="context-items" id="websiteList"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const MAX_MESSAGE_FILES = 10;
+    const MAX_CONTEXT_FILES = 8;
+    const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+    const state = {
+      messageFiles: [], contextFiles: [], websites: [], messages: [], provider: "gpt",
+      sending: false, listening: false, startingVoice: false,
+      recognition: null, requestController: null, audioStream: null, audioContext: null,
+      audioSource: null, analyser: null, waveFrame: null,
+      noiseFloor: .025, voiceLevel: 0, voiceBase: "", voiceFinal: ""
+    };
+
+    const byId = id => document.getElementById(id);
+    const chatPanel = document.querySelector(".chat-panel");
+    const composer = byId("composer");
+    const conversation = byId("conversation");
+    const messages = byId("messages");
+    const emptyState = byId("emptyState");
+    const messageInput = byId("messageInput");
+    const sendButton = byId("sendButton");
+    const attachButton = byId("attachButton");
+    const micButton = byId("micButton");
+    const providerPicker = byId("providerPicker");
+    const providerTrigger = byId("providerTrigger");
+    const providerMenu = byId("providerMenu");
+    const providerLabel = byId("providerLabel");
+    const messageFileInput = byId("composerFileInput");
+    const contextFileInput = byId("fileInput");
+    const attachmentTray = byId("attachmentTray");
+    const dropzone = byId("dropzone");
+    const waveCanvas = byId("waveCanvas");
+    const wave = waveCanvas.getContext("2d");
+
+    function normalizeText(value) { return value.replace(/\s+/g, " ").trim(); }
+
+    function setProviderMenu(open) {
+      providerMenu.hidden = !open;
+      providerPicker.classList.toggle("open", open);
+      providerTrigger.setAttribute("aria-expanded", String(open));
+    }
+
+    function selectProvider(provider) {
+      state.provider = provider;
+      providerLabel.textContent = provider === "gemini" ? "Gemini" : "GPT";
+      providerMenu.querySelectorAll("[data-provider]").forEach(option => {
+        option.setAttribute("aria-selected", String(option.dataset.provider === provider));
+      });
+      setProviderMenu(false);
+      messageInput.focus();
+    }
+
+    function resizeInput() {
+      messageInput.style.height = "42px";
+      messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + "px";
+    }
+
+    function updateComposer() {
+      const ready = messageInput.value.trim().length > 0 && !state.sending;
+      sendButton.disabled = !ready;
+      sendButton.classList.toggle("ready", ready);
+      sendButton.classList.toggle("loading", state.sending);
+      resizeInput();
+    }
+
+    function fileType(name) {
+      const extension = name.includes(".") ? name.split(".").pop() : "file";
+      return extension.slice(0, 4).toUpperCase();
+    }
+
+    function fileSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1048576) return Math.round(bytes / 1024) + " KB";
+      return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    function removeButton(label, action) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "icon-button remove-button";
+      button.title = label;
+      button.setAttribute("aria-label", label);
+      button.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      button.addEventListener("click", action);
+      return button;
+    }
+
+    function renderMessageFiles() {
+      const list = byId("composerFileList");
+      list.replaceChildren();
+      attachmentTray.hidden = state.messageFiles.length === 0;
+      attachButton.disabled = state.messageFiles.length >= MAX_MESSAGE_FILES;
+      byId("composerFileCount").textContent = state.messageFiles.length + "/" + MAX_MESSAGE_FILES;
+
+      state.messageFiles.forEach((file, index) => {
+        const item = document.createElement("div");
+        item.className = "composer-file";
+        const type = document.createElement("span");
+        type.className = "file-type";
+        type.textContent = fileType(file.name);
+        const meta = document.createElement("div");
+        meta.className = "file-meta";
+        const name = document.createElement("strong");
+        name.textContent = file.name;
+        name.title = file.name;
+        const size = document.createElement("small");
+        size.textContent = fileSize(file.size);
+        meta.append(name, size);
+        item.append(type, meta, removeButton("Remove " + file.name, () => {
+          state.messageFiles.splice(index, 1);
+          renderMessageFiles();
+        }));
+        list.append(item);
+      });
+    }
+
+    function addMessageFiles(files) {
+      const available = MAX_MESSAGE_FILES - state.messageFiles.length;
+      const incoming = Array.from(files);
+      if (incoming.length > available) alert("You can attach up to 10 files to a message.");
+      state.messageFiles.push(...incoming.slice(0, available));
+      messageFileInput.value = "";
+      renderMessageFiles();
+    }
+
+    function renderContextFiles() {
+      const list = byId("fileList");
+      list.replaceChildren();
+      byId("fileCount").textContent = state.contextFiles.length + "/" + MAX_CONTEXT_FILES;
+      state.contextFiles.forEach((file, index) => {
+        const item = document.createElement("div");
+        item.className = "context-item";
+        const kind = document.createElement("span");
+        kind.className = "context-kind";
+        kind.textContent = "FILE";
+        const name = document.createElement("p");
+        name.textContent = file.name;
+        name.title = file.name;
+        item.append(kind, name, removeButton("Remove " + file.name, () => {
+          state.contextFiles.splice(index, 1);
+          renderContextFiles();
+        }));
+        list.append(item);
+      });
+    }
+
+    function addContextFiles(files) {
+      const available = MAX_CONTEXT_FILES - state.contextFiles.length;
+      const incoming = Array.from(files);
+      if (incoming.length > available) alert("You can add up to 8 files to Prompt Box.");
+      state.contextFiles.push(...incoming.slice(0, available));
+      contextFileInput.value = "";
+      renderContextFiles();
+    }
+
+    function renderWebsites() {
+      const list = byId("websiteList");
+      list.replaceChildren();
+      byId("websiteCount").textContent = String(state.websites.length);
+      state.websites.forEach((website, index) => {
+        const item = document.createElement("div");
+        item.className = "context-item";
+        const kind = document.createElement("span");
+        kind.className = "context-kind";
+        kind.textContent = "URL";
+        const value = document.createElement("p");
+        value.textContent = website.replace(/^https?:\/\//i, "");
+        value.title = website;
+        item.append(kind, value, removeButton("Remove website", () => {
+          state.websites.splice(index, 1);
+          renderWebsites();
+        }));
+        list.append(item);
+      });
+    }
+
+    function addWebsite() {
+      const input = byId("website");
+      let value = input.value.trim();
+      if (!value) return;
+      if (!/^https?:\/\//i.test(value)) value = "https://" + value;
+      try { value = new URL(value).href; }
+      catch { input.setAttribute("aria-invalid", "true"); input.focus(); return; }
+      input.removeAttribute("aria-invalid");
+      if (!state.websites.includes(value)) state.websites.push(value);
+      input.value = "";
+      renderWebsites();
+    }
+
+    function appendMessage(role, text, files = []) {
+      chatPanel.classList.add("has-messages");
+      emptyState.hidden = true;
+      messages.hidden = false;
+      const item = document.createElement("article");
+      item.className = "message " + role;
+      const roleLabel = document.createElement("span");
+      roleLabel.className = "message-role";
+      if (role === "user") {
+  roleLabel.textContent = "You";
+} else {
+  roleLabel.innerHTML = `
+    <img
+      src="{{ url_for('static', filename='images/logo.png') }}"
+      alt="Logo"
+      class="logo"
+      width="20"
+      height="20"
+    >
+  `;
+}
+      item.append(roleLabel);
+      if (files.length) {
+        const fileRow = document.createElement("div");
+        fileRow.className = "message-files";
+        files.forEach(file => {
+          const badge = document.createElement("span");
+          badge.className = "message-file";
+          badge.textContent = file.name;
+          fileRow.append(badge);
+        });
+        item.append(fileRow);
+      }
+      const paragraph = document.createElement("p");
+      paragraph.className = "message-text";
+      paragraph.textContent = text;
+      item.append(paragraph);
+      messages.append(item);
+      conversation.scrollTop = conversation.scrollHeight;
+      return item;
+    }
+
+    function resolvePending(item, text, isError = false) {
+      item.classList.remove("pending");
+      item.classList.toggle("error", isError);
+      item.querySelector(".message-text").textContent = text;
+      conversation.scrollTop = conversation.scrollHeight;
+    }
+
+    function filePayload(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ name: file.name, type: file.type || "application/octet-stream", size: file.size, data: reader.result });
+        reader.onerror = () => reject(new Error("Could not read " + file.name + "."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || state.sending) return;
+      const messageFiles = [...state.messageFiles];
+      const contextFiles = [...state.contextFiles];
+      const allFiles = [...contextFiles, ...messageFiles];
+      if (allFiles.reduce((total, file) => total + file.size, 0) >= MAX_TOTAL_BYTES) {
+        alert("The total file size must be less than 50 MB.");
+        return;
+      }
+
+      if (state.listening) stopVoice();
+      const history = state.messages.slice(-20);
+      appendMessage("user", text, messageFiles);
+      state.messages.push({ role: "user", content: text });
+      messageInput.value = "";
+      state.messageFiles = [];
+      state.voiceBase = "";
+      state.voiceFinal = "";
+      renderMessageFiles();
+      state.sending = true;
+      updateComposer();
+      const pending = appendMessage("assistant", "Thinking...");
+      pending.classList.add("pending");
+      const controller = new AbortController();
+      state.requestController = controller;
+
+      try {
+        const [messageFilePayloads, contextFilePayloads] = await Promise.all([
+          Promise.all(messageFiles.map(filePayload)),
+          Promise.all(contextFiles.map(filePayload))
+        ]);
+        const endpoint = state.provider === "gemini" ? "/api/gemini/chat" : "/api/chat";
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            message: text,
+            provider: state.provider,
+            history,
+            instruction: byId("instruction").value.trim(),
+            websites: state.websites,
+            message_files: messageFilePayloads,
+            context_files: contextFilePayloads
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "The backend could not complete the request.");
+        const answer = typeof data.text === "string" ? data.text : "No response was returned.";
+        resolvePending(pending, answer);
+        state.messages.push({ role: "assistant", content: answer });
+      } catch (error) {
+        if (error.name === "AbortError") {
+          pending.remove();
+          return;
+        }
+        const text = error instanceof TypeError ? "Could not connect to the backend. Open the app from localhost." : error.message;
+        resolvePending(pending, text, true);
+      } finally {
+        if (state.requestController === controller) {
+          state.requestController = null;
+          state.sending = false;
+          updateComposer();
+          messageInput.focus();
+        }
+      }
+    }
+
+    function startNewChat() {
+      if (state.requestController) state.requestController.abort();
+      state.requestController = null;
+      if (state.listening) stopVoice();
+
+      state.messages = [];
+      state.messageFiles = [];
+      state.contextFiles = [];
+      state.websites = [];
+      state.sending = false;
+      state.voiceBase = "";
+      state.voiceFinal = "";
+
+      messages.replaceChildren();
+      messages.hidden = true;
+      emptyState.hidden = false;
+      chatPanel.classList.remove("has-messages");
+      messageInput.value = "";
+      messageFileInput.value = "";
+      contextFileInput.value = "";
+      byId("instruction").value = "";
+      byId("instructionCount").textContent = "0/500";
+      byId("website").value = "";
+
+      renderMessageFiles();
+      renderContextFiles();
+      renderWebsites();
+      updateComposer();
+      messageInput.focus();
+    }
+
+    function flatWave() {
+      wave.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+      wave.beginPath();
+      wave.moveTo(4, 16);
+      wave.lineTo(108, 16);
+      wave.strokeStyle = "rgba(243,245,246,.45)";
+      wave.lineWidth = 1;
+      wave.stroke();
+    }
+
+    function reactiveWave() {
+      if (!state.analyser) return;
+      const samples = new Uint8Array(state.analyser.fftSize);
+      state.analyser.getByteTimeDomainData(samples);
+      let energy = 0;
+      for (const sample of samples) energy += Math.pow((sample - 128) / 128, 2);
+      const rms = Math.sqrt(energy / samples.length);
+      if (rms < state.noiseFloor + .018) state.noiseFloor = Math.max(.008, Math.min(.07, state.noiseFloor * .96 + rms * .04));
+      const threshold = Math.max(.026, state.noiseFloor + .014);
+      const rawLevel = Math.max(0, Math.min(1, (rms - threshold) / .14));
+      const target = rawLevel > .045 ? rawLevel : 0;
+      state.voiceLevel += (target - state.voiceLevel) * (target ? .34 : .48);
+      flatWave();
+
+      if (state.voiceLevel > .018) {
+        wave.beginPath();
+        for (let x = 0; x <= 104; x += 2) {
+          const progress = x / 104;
+          const sample = (samples[Math.min(samples.length - 1, Math.floor(progress * samples.length))] - 128) / 128;
+          const y = 16 + sample * 22 * state.voiceLevel * Math.sin(Math.PI * progress);
+          if (x === 0) wave.moveTo(x + 4, y); else wave.lineTo(x + 4, y);
+        }
+        wave.strokeStyle = "#f3f5f6";
+        wave.lineWidth = 1.8;
+        wave.lineCap = "round";
+        wave.lineJoin = "round";
+        wave.stroke();
+      }
+      state.waveFrame = requestAnimationFrame(reactiveWave);
+    }
+
+    async function startAudio() {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("secure-context-required");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) { stream.getTracks().forEach(track => track.stop()); throw new Error("audio-context-unavailable"); }
+      const audioContext = new AudioContextClass();
+      await audioContext.resume();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = .76;
+      source.connect(analyser);
+      Object.assign(state, { audioStream: stream, audioContext, audioSource: source, analyser, noiseFloor: .025, voiceLevel: 0 });
+      reactiveWave();
+    }
+
+    function stopAudio() {
+      if (state.waveFrame) cancelAnimationFrame(state.waveFrame);
+      if (state.audioSource) state.audioSource.disconnect();
+      if (state.analyser) state.analyser.disconnect();
+      if (state.audioStream) state.audioStream.getTracks().forEach(track => track.stop());
+      if (state.audioContext && state.audioContext.state !== "closed") state.audioContext.close().catch(() => {});
+      Object.assign(state, { waveFrame: null, audioStream: null, audioContext: null, audioSource: null, analyser: null, voiceLevel: 0 });
+      flatWave();
+    }
+
+    function setListening(value) {
+      state.listening = value;
+      composer.classList.toggle("listening", value);
+      micButton.classList.toggle("listening", value);
+      micButton.setAttribute("aria-label", value ? "Stop voice input" : "Start voice input");
+      micButton.title = value ? "Stop voice input" : "Voice input";
+    }
+
+    function stopVoice() {
+      const recognition = state.recognition;
+      state.recognition = null;
+      if (recognition) { recognition.onend = null; try { recognition.stop(); } catch {} }
+      setListening(false);
+      stopAudio();
+      state.voiceBase = messageInput.value.trim();
+      state.voiceFinal = "";
+    }
+
+    async function toggleVoice() {
+      if (state.listening) { stopVoice(); return; }
+      if (state.startingVoice) return;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { alert("Voice input is not supported by this browser."); return; }
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      state.voiceBase = messageInput.value.trim();
+      state.voiceFinal = "";
+
+      recognition.onresult = event => {
+        let interim = "";
+        for (let index = event.resultIndex; index < event.results.length; index++) {
+          const result = event.results[index];
+          if (result.isFinal) state.voiceFinal = normalizeText(state.voiceFinal + " " + result[0].transcript);
+          else interim = normalizeText(interim + " " + result[0].transcript);
+        }
+        messageInput.value = normalizeText([state.voiceBase, state.voiceFinal, interim].filter(Boolean).join(" "));
+        updateComposer();
+      };
+
+      recognition.onend = () => { state.recognition = null; setListening(false); stopAudio(); };
+      recognition.onerror = event => {
+        state.recognition = null; setListening(false); stopAudio();
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") alert("Microphone permission is required for voice input.");
+      };
+
+      state.startingVoice = true;
+      micButton.disabled = true;
+      try {
+        await startAudio();
+        state.recognition = recognition;
+        setListening(true);
+        recognition.start();
+      } catch (error) {
+        state.recognition = null; setListening(false); stopAudio();
+        if (error.name === "NotAllowedError" || error.name === "SecurityError") alert("Microphone permission is required for voice input.");
+        else alert("The microphone is available only over HTTPS or localhost.");
+      } finally {
+        state.startingVoice = false;
+        micButton.disabled = false;
+      }
+    }
+
+    attachButton.addEventListener("click", () => messageFileInput.click());
+    messageFileInput.addEventListener("change", event => addMessageFiles(event.target.files));
+    dropzone.addEventListener("click", () => contextFileInput.click());
+    dropzone.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); contextFileInput.click(); }
+    });
+    contextFileInput.addEventListener("change", event => addContextFiles(event.target.files));
+    dropzone.addEventListener("dragover", event => { event.preventDefault(); dropzone.classList.add("dragging"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragging"));
+    dropzone.addEventListener("drop", event => { event.preventDefault(); dropzone.classList.remove("dragging"); addContextFiles(event.dataTransfer.files); });
+    byId("instruction").addEventListener("input", event => { byId("instructionCount").textContent = event.target.value.length + "/500"; });
+    byId("addWebsite").addEventListener("click", addWebsite);
+    byId("website").addEventListener("keydown", event => { if (event.key === "Enter") addWebsite(); });
+    byId("clearButton").addEventListener("click", () => {
+      state.contextFiles = [];
+      state.websites = [];
+      byId("instruction").value = "";
+      byId("instructionCount").textContent = "0/500";
+      renderContextFiles();
+      renderWebsites();
+    });
+    providerTrigger.addEventListener("click", () => setProviderMenu(providerMenu.hidden));
+    providerMenu.addEventListener("click", event => {
+      const option = event.target.closest("[data-provider]");
+      if (option) selectProvider(option.dataset.provider);
+    });
+    document.addEventListener("click", event => {
+      if (!providerPicker.contains(event.target)) setProviderMenu(false);
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") setProviderMenu(false);
+    });
+    byId("newChatButton").addEventListener("click", startNewChat);
+    sendButton.addEventListener("click", sendMessage);
+    messageInput.addEventListener("input", updateComposer);
+    messageInput.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); }
+    });
+    micButton.addEventListener("click", toggleVoice);
+
+    flatWave();
+    renderMessageFiles();
+    renderContextFiles();
+    renderWebsites();
+    updateComposer();
+  </script>
+</body>
+</html>
