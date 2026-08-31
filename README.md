@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="static/images/logo.png" width="50">
+  <img src="static/images/logo.png" width="50" align="left">
 </p>
 
-<h1 align="center">ORBIX</h1>
+<h1 align="left">ORBIX</h1>
 
 <p align="center">
   A customizable AI tool that adapts to your needs. Define custom instructions,
