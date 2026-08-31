@@ -1,5 +1,5 @@
-<h1 align="center">
-  <img src="static/images/logo.png" width="45" valign="middle">
+<h1 align="left">
+  <img src="static/images/logo.png" width="60" valign="middle">
   ORBIX
 </h1>
 
