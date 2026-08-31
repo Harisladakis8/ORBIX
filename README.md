@@ -1,7 +1,7 @@
 <style></style>
 <p align="center">
-  <img src="{{ url_for('static', filename='images/logo.png') }}" width="120">
-  <h1 align="right">ORBIX</h1>
+  <img src="{{ url_for('static', filename='images/logo.png') }}" width="50" align="left">
+  <h1 align="left">ORBIX</h1>
 </p>
 
 
