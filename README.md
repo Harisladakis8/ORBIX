@@ -1,6 +1,6 @@
 <h1 align="left">
   <sup><img src="static/images/logo.png" width="80" valign="middle"></sup>
-   <sup><p font-size="50">ORBIX</p></sup>
+   <sup>ORBIX</sup>
 </h1>
 
 <p align="center">
