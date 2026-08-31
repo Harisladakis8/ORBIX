@@ -2,7 +2,7 @@
   <img src="static/images/logo.png" width="50" align="left">
 </p>
 
-<h1 align="left" style="position:fixed; display:flex;">ORBIX</h1>
+<h1 align="left" style="position:fixed; display:flex; margin-bottom: 10px;">ORBIX</h1>
 
 
 <p align="center">
