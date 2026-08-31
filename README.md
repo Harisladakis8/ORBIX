@@ -1,6 +1,6 @@
 <h1 align="left">
   <img src="static/images/logo.png" width="60" valign="middle">
-  ORBIX
+   ORBIX
 </h1>
 
 <p align="center">
