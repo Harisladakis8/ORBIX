@@ -1,6 +1,7 @@
 <h1 align="left">
   <sup><img src="static/images/logo.png" width="100" valign="middle"></sup>
    <font size="9">ORBIX</font>
+   <font  size="9" align="right">By Ladakis Charalampos</font>
 </h1>
 
 <p align="center">
