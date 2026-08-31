@@ -1,17 +1,10 @@
-<table width="100%">
-  <tr>
-    <td align="left">
-      <h1>
-        <sup><img src="static/images/logo.png" width="100"></sup>
-        ORBIX
-      </h1>
-    </td>
-
-    <td align="right">
-      <b>By Ladakis Charalampos</b>
-    </td>
-  </tr>
-</table>
+<h1 align="left">
+  <sup><img src="static/images/logo.png" width="100" valign="middle"></sup>
+   <font size="9">ORBIX</font>
+   <p align="right">
+  <font size="5">By Ladakis Charalampos</font>
+</p>
+</h1>
 
 <p align="center">
   A customizable AI tool that adapts to your needs. Define custom instructions,
